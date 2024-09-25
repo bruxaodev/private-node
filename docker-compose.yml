@@ -1,0 +1,83 @@
+version: '3.7'
+
+services:
+  geth-bootnode:
+    container_name: geth-bootnode
+    hostname: geth-bootnode
+    env_file:
+      - .env
+    image: geth-client
+    build:
+      context: .
+      args:
+        - ACCOUNT_PASSWORD=${ACCOUNT_PASSWORD}
+    command:
+      --nodekeyhex=${PRIVATE_NODE_KEY}
+      --nodiscover
+      --ipcdisable
+      --networkid=${NETWORK_ID}
+      --netrestrict="172.16.254.0/28"
+    volumes:
+      - geth-bootnode:/root/.ethereum/
+    networks:
+      priv-eth-net:
+
+  geth-rpc-endpoint:
+    container_name: geth-rpc-endpoint
+    hostname: geth-rpc-endpoint
+    env_file:
+      - .env
+    image: geth-client
+    depends_on:
+      - geth-bootnode    
+    command:
+      --bootnodes="enode://${PUBLIC_NODE_KEY}@geth-bootnode:30303"
+      --allow-insecure-unlock
+      --http
+      --http.addr="0.0.0.0"
+      --http.api="eth,web3,net,admin,personal,miner"
+      --http.corsdomain="*"
+      --networkid=${NETWORK_ID}
+      --netrestrict="172.16.254.0/28"
+      --syncmode="full"
+    volumes:
+      - geth-rpc-endpoint:/root/.ethereum/
+    ports:
+      - "8545:8545"
+    networks:
+      priv-eth-net:
+
+  geth-miner:
+    container_name: geth-miner
+    hostname: geth-miner
+    env_file:
+      - .env
+    image: geth-client
+    depends_on:
+      - geth-bootnode
+    command:
+      --bootnodes="enode://${PUBLIC_NODE_KEY}@geth-bootnode:30303"
+      --mine
+      --miner.threads=4
+      --networkid=${NETWORK_ID}
+      --netrestrict="172.16.254.0/28"
+      --syncmode="full"
+    volumes:
+      - geth-miner:/root/.ethereum/
+    networks:
+      priv-eth-net:
+
+networks:
+  priv-eth-net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.16.254.0/28
+
+volumes:
+  geth-bootnode:
+    driver: local
+  geth-rpc-endpoint:
+    driver: local
+  geth-miner:
+    driver: local
