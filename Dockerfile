@@ -1,4 +1,4 @@
-FROM ethereum/client-go:v1.10.1
+FROM ethereum/client-go:v1.11.5
 
 ARG ACCOUNT_PASSWORD
 
@@ -9,8 +9,5 @@ RUN geth init /tmp/genesis.json \
     && echo ${ACCOUNT_PASSWORD} > /tmp/password \
     && geth account new --password /tmp/password \
     && rm -f /tmp/password
-    
+
 ENTRYPOINT ["geth"]
-
-
-

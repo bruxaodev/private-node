@@ -6,19 +6,22 @@ services:
     hostname: geth-bootnode
     env_file:
       - .env
-    image: geth-client
-    build:
-      context: .
-      args:
-        - ACCOUNT_PASSWORD=${ACCOUNT_PASSWORD}
+    image: private-node
+    # build:
+    #   context: .
+    #   args:
+    #     - ACCOUNT_PASSWORD=${ACCOUNT_PASSWORD}
     command:
       --nodekeyhex=${PRIVATE_NODE_KEY}
       --nodiscover
+      --allow-insecure-unlock
       --ipcdisable
       --networkid=${NETWORK_ID}
       --netrestrict="172.16.254.0/28"
+      --mine
+      --miner.etherbase=${REWARD_ADDRESS}
     volumes:
-      - geth-bootnode:/root/.ethereum/
+      - geth_bootnode:/root/.ethereum/
     networks:
       priv-eth-net:
 
@@ -27,7 +30,7 @@ services:
     hostname: geth-rpc-endpoint
     env_file:
       - .env
-    image: geth-client
+    image: private-node
     depends_on:
       - geth-bootnode    
     command:
@@ -41,9 +44,10 @@ services:
       --netrestrict="172.16.254.0/28"
       --syncmode="full"
     volumes:
-      - geth-rpc-endpoint:/root/.ethereum/
+      - geth_rpc_endpoint:/root/.ethereum/
     ports:
       - "8545:8545"
+      - "8546:8546"
     networks:
       priv-eth-net:
 
@@ -52,18 +56,20 @@ services:
     hostname: geth-miner
     env_file:
       - .env
-    image: geth-client
+    image: private-node
     depends_on:
       - geth-bootnode
     command:
       --bootnodes="enode://${PUBLIC_NODE_KEY}@geth-bootnode:30303"
+      --allow-insecure-unlock
       --mine
-      --miner.threads=4
+      --miner.threads=1
       --networkid=${NETWORK_ID}
       --netrestrict="172.16.254.0/28"
       --syncmode="full"
+      --miner.etherbase=${REWARD_ADDRESS}
     volumes:
-      - geth-miner:/root/.ethereum/
+      - geth_miner:/root/.ethereum/
     networks:
       priv-eth-net:
 
@@ -75,9 +81,9 @@ networks:
       - subnet: 172.16.254.0/28
 
 volumes:
-  geth-bootnode:
+  geth_bootnode:
     driver: local
-  geth-rpc-endpoint:
+  geth_rpc_endpoint:
     driver: local
-  geth-miner:
+  geth_miner:
     driver: local
